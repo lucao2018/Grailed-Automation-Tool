@@ -6,6 +6,7 @@ import pandas as pd
 import plotly.graph_objs as go
 from dash.dependencies import Input, Output, State
 from Grailed_Bot import Grailed_Bot
+from Grailed_Bot import Product_Tracker
 from dash.exceptions import PreventUpdate
 
 external_stylesheets = ['https://codepen.io/chriddyp/pen/bWLwgP.css']
@@ -39,78 +40,125 @@ accessories = []
 accessories.append({'label': "OS", 'value': "OS"})
 for i in range(26, 47, 2):
     accessories.append({'label': str(i), 'value': str(i)})
+listingnumber = []
+
+
+def get_listing_number(url):
+    listingnumber = ""
+    index = 0
+
+    for i in range(0, len(url)):
+        if url[i].isdigit():
+            index = i
+            break
+
+    print(index)
+
+    for i in range(index, len(url)):
+        if url[i].isdigit():
+            listingnumber += url[i]
+        else:
+            break
+
+    return listingnumber
+
+
+def generate_csv(listingnumber):
+    with open(listingnumber + '.csv', 'w', newline='', encoding='utf-8') as new_file:
+        csv_writer = csv.writer(new_file)
+        csv_writer.writerow(
+            ['date', 'price', 'shipping price', 'total price', 'description', 'user rating'])
 
 app.layout = html.Div([
-    html.H4(children="Welcome to the Grailed Automation Tool"),
-    html.H6(children="Type in the product you want to search for: "),
-    dcc.Input(id='input-1-state', type='text', value='Product Name (be as descriptive as possible)'),
-    html.H6(children="Choose the type of product you want to search for"),
-    dcc.Dropdown(
-        id='input-2-state',
-        options=[
-            {'label': 'Tops', 'value': 'Tops'},
-            {'label': 'Bottoms', 'value': 'Bottoms'},
-            {'label': 'Outerwear', 'value': 'Outerwear'},
-            {'label': 'Footwear', 'value': 'Footwear'},
-            {'label': 'Tailoring', 'value': 'Tailoring'},
-            {'label': 'Accessories', 'value': 'Accessories'},
-            {'label': 'None of the above', 'value': 'None of the above'}
-        ],
-        value='Please choose the type of product you are searching for',
-        multi=False
-    ),
-    html.H6(children="Select sizing that is relevant to your search query: "),
-    html.H6(children="Tops/outerwear sizing: "),
-    dcc.Dropdown(
-        id='input-3-state',
-        options=[
-            {'label': 'XXS', 'value': 'XXS/40'},
-            {'label': 'XS', 'value': 'XS/42'},
-            {'label': 'S', 'value': 'S44-46'},
-            {'label': 'M', 'value': 'M48-50'},
-            {'label': 'L', 'value': 'L/52-54'},
-            {'label': 'XL', 'value': 'XL/56'},
-            {'label': 'XXL', 'value': 'XXL/58'}
-        ],
-        value='Select your sizing for tops/outerwear',
-        multi=True
-    ),
-    html.H6(children="Bottoms/pants sizing: "),
-    dcc.Dropdown(
-        id='input-4-state',
-        options=bottoms,
-        value='Select your sizing for pants/bottoms',
-        multi=True
-    ),
-    html.H6(children="Footwear sizing: "),
-    dcc.Dropdown(
-        id='input-5-state',
-        options=footwear,
-        value='Select your sizing for footwear',
-        multi=True
-    ),
-    html.H6(children="Tailoring sizing: "),
-    dcc.Dropdown(
-        id='input-6-state',
-        options=tailoring,
-        value='Select your sizing for tailoring',
-        multi=True
-    ),
-    html.H6(children="Accessories sizing: "),
-    dcc.Dropdown(
-        id='input-7-state',
-        options=accessories,
-        value='Select your sizing for accessories',
-        multi=True
-    ),
-    html.Button(id='submit-button', n_clicks=0, children='Submit'),
-    html.H6("Here are all of the listings that we found"),
-    html.Div(id='output-state'),
-    html.H6("Here is a stacked bar chart of all of the listing costs"),
-    html.Div(id='hover-info'),
-    html.Div(id='output-state2')
-])
+    dcc.Tabs(id="tabs", children=[
+        dcc.Tab(label='Product search', children=[
+            html.H4(children="Welcome to the Grailed Automation Tool"),
+            html.H6(children="Type in the product you want to search for: "),
+            dcc.Input(id='input-1-state', type='text', value='Product Name (be as descriptive as possible)'),
+            html.H6(children="Choose the type of product you want to search for"),
+            dcc.Dropdown(
+                id='input-2-state',
+                options=[
+                    {'label': 'Tops', 'value': 'Tops'},
+                    {'label': 'Bottoms', 'value': 'Bottoms'},
+                    {'label': 'Outerwear', 'value': 'Outerwear'},
+                    {'label': 'Footwear', 'value': 'Footwear'},
+                    {'label': 'Tailoring', 'value': 'Tailoring'},
+                    {'label': 'Accessories', 'value': 'Accessories'},
+                    {'label': 'None of the above', 'value': 'None of the above'}
+                ],
+                value='Please choose the type of product you are searching for',
+                multi=False
+            ),
+            html.H6(children="Select sizing that is relevant to your search query: "),
+            html.H6(children="Tops/outerwear sizing: "),
+            dcc.Dropdown(
+                id='input-3-state',
+                options=[
+                    {'label': 'XXS', 'value': 'XXS/40'},
+                    {'label': 'XS', 'value': 'XS/42'},
+                    {'label': 'S', 'value': 'S44-46'},
+                    {'label': 'M', 'value': 'M48-50'},
+                    {'label': 'L', 'value': 'L/52-54'},
+                    {'label': 'XL', 'value': 'XL/56'},
+                    {'label': 'XXL', 'value': 'XXL/58'}
+                ],
+                value='Select your sizing for tops/outerwear',
+                multi=True
+            ),
+            html.H6(children="Bottoms/pants sizing: "),
+            dcc.Dropdown(
+                id='input-4-state',
+                options=bottoms,
+                value='Select your sizing for pants/bottoms',
+                multi=True
+            ),
+            html.H6(children="Footwear sizing: "),
+            dcc.Dropdown(
+                id='input-5-state',
+                options=footwear,
+                value='Select your sizing for footwear',
+                multi=True
+            ),
+            html.H6(children="Tailoring sizing: "),
+            dcc.Dropdown(
+                id='input-6-state',
+                options=tailoring,
+                value='Select your sizing for tailoring',
+                multi=True
+            ),
+            html.H6(children="Accessories sizing: "),
+            dcc.Dropdown(
+                id='input-7-state',
+                options=accessories,
+                value='Select your sizing for accessories',
+                multi=True
+            ),
+            html.Button(id='submit-button', n_clicks=0, children='Submit'),
+            html.H6("Here are all of the listings that we found"),
+            html.Div(id='output-state'),
+            html.H6("Here is a stacked bar chart of all of the listing costs"),
+            html.Div(id='hover-info'),
+            html.Div(id='output-state2')
+        ]),
 
+        dcc.Tab(label = "Product Tracking", children = [
+            html.H6(children="Type in the url of a product that you would like to track"),
+            dcc.Input(id='input-track-url', type='text', value='Paste the url of the product'),
+            html.Button(id='submit-button2', n_clicks=0, children='Submit'),
+            html.H6("Here is a line graph that will track the price of the product over time: "),
+            html.Div(id='hidden-div', style={'display': 'none'}),
+            html.H6(children = "Here are the products that you are tracking"),
+            dcc.Graph(id='live-update-graph'),
+            dcc.Interval(
+                id='interval-component',
+                interval=2 * 60000,  # in milliseconds
+                n_intervals=0
+            ),
+
+        ])
+    ])
+])
 
 @app.callback([Output('output-state', 'children'),
                Output('output-state2', 'children')],
@@ -199,6 +247,64 @@ def generate_stacked_chart(csvname):
                                           )
                          )
     )
+
+@app.callback(Output('hidden-div', 'children'),
+              [Input('submit-button2', 'n_clicks')],
+              [State('input-track-url', 'value')])
+
+def add_to_tracking(n_clicks, input1):
+    if input1 == "Paste the url of the product":
+        raise PreventUpdate
+    else:
+        generate_csv(get_listing_number(input1))
+
+    listingnumber.append(get_listing_number(input1))
+
+@app.callback(Output('live-update-graph', 'figure'),
+              [Input('interval-component', 'n_intervals')])
+
+def update_output_div(n):
+
+    if len(listingnumber)!=0:
+        print("made it here")
+        producttracker = Product_Tracker(listingnumber[0])
+        producttracker.scrape_product()
+        df = pd.read_csv(listingnumber[0] + '.csv')
+        print("made it here")
+        trace_shipping = go.Scatter(
+            x=df['date'],
+            y=df['shipping price'],
+            name = "shipping price",
+            line = dict(color = '#17BECF'),
+            opacity = 0.8)
+
+        trace_price = go.Scatter(
+            x=df['date'],
+            y=df['price'],
+            name = "Product Price",
+            line = dict(color = '#7F7F7F'),
+            opacity = 0.8)
+
+        trace_total = go.Scatter(
+            x=df['date'],
+            y=df['total price'],
+            name = "Total Price Price",
+            line = dict(color = '#7F7F7F'),
+            opacity = 0.8)
+
+        data = [trace_price, trace_shipping, trace_total]
+        layout = dict(
+            title="Manually Set Date Range",
+        )
+
+        fig = dict(data=data, layout=layout)
+
+
+        return fig
+    else:
+        raise PreventUpdate
+
+
 
 
 if __name__ == '__main__':
