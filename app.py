@@ -42,7 +42,7 @@ for i in range(26, 47, 2):
     accessories.append({'label': str(i), 'value': str(i)})
 listingnumber = []
 
-
+list_of_graphs = []
 def get_listing_number(url):
     listingnumber = ""
     index = 0
@@ -68,6 +68,7 @@ def generate_csv(listingnumber):
         csv_writer = csv.writer(new_file)
         csv_writer.writerow(
             ['date', 'price', 'shipping price', 'total price', 'description', 'user rating'])
+
 
 app.layout = html.Div([
     dcc.Tabs(id="tabs", children=[
@@ -142,23 +143,41 @@ app.layout = html.Div([
             html.Div(id='output-state2')
         ]),
 
-        dcc.Tab(label = "Product Tracking", children = [
-            html.H6(children="Type in the url of a product that you would like to track"),
+        dcc.Tab(label="Product Tracking", children=[
+            html.H6(children="Type in the url of a product that you would like to add to your tracking list"),
             dcc.Input(id='input-track-url', type='text', value='Paste the url of the product'),
             html.Button(id='submit-button2', n_clicks=0, children='Submit'),
             html.H6("Here is a line graph that will track the price of the product over time: "),
-            html.Div(id='hidden-div', style={'display': 'none'}),
-            html.H6(children = "Here are the products that you are tracking"),
-            dcc.Graph(id='live-update-graph'),
+            html.H6(children="Choose up to 10 of the products that you are tracking to see visualization of price"),
+            html.Div(id='products-to-track-test'),
+
+            dcc.Dropdown(
+                id='products-to-track',
+                # options=listingnumber,
+                value='Choose products to visualize',
+                multi=True
+            ),
+            html.Button(id='submit-button3', n_clicks=0, children='Submit'),
+            html.Div(id='live-update-graph1'),
+            html.Div(id='live-update-graph2'),
+            html.Div(id='live-update-graph3'),
+            html.Div(id='live-update-graph4'),
+            html.Div(id='live-update-graph5'),
+            html.Div(id='live-update-graph6'),
+            html.Div(id='live-update-graph7'),
+            html.Div(id='live-update-graph8'),
+            html.Div(id='live-update-graph9'),
+            html.Div(id='live-update-graph10'),
             dcc.Interval(
                 id='interval-component',
-                interval=2 * 60000,  # in milliseconds
+                interval=60000,  # in milliseconds
                 n_intervals=0
             ),
 
         ])
     ])
 ])
+
 
 @app.callback([Output('output-state', 'children'),
                Output('output-state2', 'children')],
@@ -248,63 +267,87 @@ def generate_stacked_chart(csvname):
                          )
     )
 
-@app.callback(Output('hidden-div', 'children'),
+
+@app.callback(Output('products-to-track', 'options'),
               [Input('submit-button2', 'n_clicks')],
               [State('input-track-url', 'value')])
-
 def add_to_tracking(n_clicks, input1):
     if input1 == "Paste the url of the product":
         raise PreventUpdate
     else:
         generate_csv(get_listing_number(input1))
+        listingnumber.append({'label': get_listing_number(input1), 'value': get_listing_number(input1)})
+        return listingnumber
 
-    listingnumber.append(get_listing_number(input1))
+@app.callback([Output('live-update-graph1', 'children'),
+               Output('live-update-graph2', 'children'),
+               Output('live-update-graph3', 'children'),
+               Output('live-update-graph4', 'children'),
+               Output('live-update-graph5', 'children'),
+               Output('live-update-graph6', 'children'),
+               Output('live-update-graph7', 'children'),
+               Output('live-update-graph8', 'children'),
+               Output('live-update-graph9', 'children'),
+               Output('live-update-graph10', 'children')],
+              [Input('submit-button3', 'n_clicks')],
+              [State('products-to-track', 'value')])
+# @app.callback([Output('live-update-graph1', 'figure'),
+#                Output('live-update-graph2', 'figure'),
+#                Output('live-update-graph3', 'figure'),
+#                Output('live-update-graph4', 'figure'),
+#                Output('live-update-graph5', 'figure'),
+#                Output('live-update-graph6', 'figure'),
+#                Output('live-update-graph7', 'figure'),
+#                Output('live-update-graph8', 'figure'),
+#                Output('live-update-graph9', 'figure'),
+#                Output('live-update-graph10', 'figure')],
+#               [Input('submit-button3', 'n_clicks')],
+#               [State('products-to-track', 'value')])
+def update_price_visualization(n_clicks, input1):
+    print(input1)
 
-@app.callback(Output('live-update-graph', 'figure'),
-              [Input('interval-component', 'n_intervals')])
+    if input1 != "Choose products to visualize":
+        for listingnumber in input1:
+            producttracker = Product_Tracker(listingnumber)
+            producttracker.scrape_product()
+            df = pd.read_csv(listingnumber + '.csv')
+            print("made it here")
+            trace_shipping = go.Scatter(
+                x=df['date'],
+                y=df['shipping price'],
+                name="shipping price",
+                line=dict(color='#17BECF'),
+                opacity=0.8)
 
-def update_output_div(n):
+            trace_price = go.Scatter(
+                x=df['date'],
+                y=df['price'],
+                name="Product Price",
+                line=dict(color='#7F7F7F'),
+                opacity=0.8)
 
-    if len(listingnumber)!=0:
-        print("made it here")
-        producttracker = Product_Tracker(listingnumber[0])
-        producttracker.scrape_product()
-        df = pd.read_csv(listingnumber[0] + '.csv')
-        print("made it here")
-        trace_shipping = go.Scatter(
-            x=df['date'],
-            y=df['shipping price'],
-            name = "shipping price",
-            line = dict(color = '#17BECF'),
-            opacity = 0.8)
+            trace_total = go.Scatter(
+                x=df['date'],
+                y=df['total price'],
+                name="Total Price Price",
+                line=dict(color='#7F7F7F'),
+                opacity=0.8)
 
-        trace_price = go.Scatter(
-            x=df['date'],
-            y=df['price'],
-            name = "Product Price",
-            line = dict(color = '#7F7F7F'),
-            opacity = 0.8)
+            data = [trace_price, trace_shipping, trace_total]
+            layout = dict(
+                title="Manually Set Date Range",
+            )
 
-        trace_total = go.Scatter(
-            x=df['date'],
-            y=df['total price'],
-            name = "Total Price Price",
-            line = dict(color = '#7F7F7F'),
-            opacity = 0.8)
+            fig = dict(data=data, layout=layout)
 
-        data = [trace_price, trace_shipping, trace_total]
-        layout = dict(
-            title="Manually Set Date Range",
-        )
+            list_of_graphs.append(dcc.Graph(figure = fig))
 
-        fig = dict(data=data, layout=layout)
+        while len(list_of_graphs) < 10:
+            list_of_graphs.append("Not currently being visualized")
 
-
-        return fig
+        return list_of_graphs
     else:
         raise PreventUpdate
-
-
 
 
 if __name__ == '__main__':
