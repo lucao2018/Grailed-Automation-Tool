@@ -42,7 +42,7 @@ for i in range(26, 47, 2):
     accessories.append({'label': str(i), 'value': str(i)})
 listingnumber = []
 
-list_of_graphs = []
+
 def get_listing_number(url):
     listingnumber = ""
     index = 0
@@ -157,7 +157,7 @@ app.layout = html.Div([
                 value='Choose products to visualize',
                 multi=True
             ),
-            html.Button(id='submit-button3', n_clicks=0, children='Submit'),
+            # html.Button(id='submit-button3', n_clicks=0, children='Submit'),
             html.Div(id='live-update-graph1'),
             html.Div(id='live-update-graph2'),
             html.Div(id='live-update-graph3'),
@@ -170,7 +170,7 @@ app.layout = html.Div([
             html.Div(id='live-update-graph10'),
             dcc.Interval(
                 id='interval-component',
-                interval=60000,  # in milliseconds
+                interval=60000 * 5,  # in milliseconds
                 n_intervals=0
             ),
 
@@ -279,6 +279,7 @@ def add_to_tracking(n_clicks, input1):
         listingnumber.append({'label': get_listing_number(input1), 'value': get_listing_number(input1)})
         return listingnumber
 
+
 @app.callback([Output('live-update-graph1', 'children'),
                Output('live-update-graph2', 'children'),
                Output('live-update-graph3', 'children'),
@@ -289,23 +290,10 @@ def add_to_tracking(n_clicks, input1):
                Output('live-update-graph8', 'children'),
                Output('live-update-graph9', 'children'),
                Output('live-update-graph10', 'children')],
-              [Input('submit-button3', 'n_clicks')],
-              [State('products-to-track', 'value')])
-# @app.callback([Output('live-update-graph1', 'figure'),
-#                Output('live-update-graph2', 'figure'),
-#                Output('live-update-graph3', 'figure'),
-#                Output('live-update-graph4', 'figure'),
-#                Output('live-update-graph5', 'figure'),
-#                Output('live-update-graph6', 'figure'),
-#                Output('live-update-graph7', 'figure'),
-#                Output('live-update-graph8', 'figure'),
-#                Output('live-update-graph9', 'figure'),
-#                Output('live-update-graph10', 'figure')],
-#               [Input('submit-button3', 'n_clicks')],
-#               [State('products-to-track', 'value')])
-def update_price_visualization(n_clicks, input1):
+              [Input('products-to-track', 'value'), Input('interval-component', 'n_intervals')])
+def update_price_visualization(input1, n):
     print(input1)
-
+    list_of_graphs = []
     if input1 != "Choose products to visualize":
         for listingnumber in input1:
             producttracker = Product_Tracker(listingnumber)
@@ -335,12 +323,12 @@ def update_price_visualization(n_clicks, input1):
 
             data = [trace_price, trace_shipping, trace_total]
             layout = dict(
-                title="Manually Set Date Range",
+                title=listingnumber,
             )
 
             fig = dict(data=data, layout=layout)
 
-            list_of_graphs.append(dcc.Graph(figure = fig))
+            list_of_graphs.append(dcc.Graph(figure=fig))
 
         while len(list_of_graphs) < 10:
             list_of_graphs.append("Not currently being visualized")
