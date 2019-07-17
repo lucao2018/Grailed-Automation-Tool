@@ -1,288 +1,376 @@
-from selenium import webdriver
-from bs4 import BeautifulSoup
-from selenium.webdriver.support.ui import WebDriverWait
-from selenium.webdriver.chrome.options import Options
-from selenium.webdriver.support import expected_conditions as EC
-from selenium.webdriver.support.ui import Select
-from selenium.webdriver.common.by import By
-from selenium.common.exceptions import TimeoutException
-from selenium.common.exceptions import StaleElementReferenceException
-from selenium.webdriver.common.action_chains import ActionChains
-import time
 import csv
+import dash
+import dash_core_components as dcc
+import dash_html_components as html
+import pandas as pd
+import plotly.graph_objs as go
+from dash.dependencies import Input, Output, State
+from Grailed_Bot import Grailed_Bot
+from Grailed_Bot import Product_Tracker
+from dash.exceptions import PreventUpdate
+import dash_bootstrap_components as dbc
+
+external_stylesheets = ['https://codepen.io/chriddyp/pen/bWLwgP.css']
+
+#app = dash.Dash(__name__, external_stylesheets=[dbc.themes.GRID], )
+app = dash.Dash(__name__, external_stylesheets=[dbc.themes.BOOTSTRAP])
+
+bottoms = []
+for i in range(26, 45):
+    bottoms.append({'label': str(i), 'value': str(i)})
+
+footwear = []
+x = 5.0
+while x <= 15:
+    if x.is_integer():
+        x = int(x)
+    footwear.append({'label': str(x), 'value': str(x)})
+    x += .5
+tailoring = []
+for i in range(34, 37, 2):
+    tailoring.append({'label': str(i) + 'S', 'value': str(i) + 'S'})
+    tailoring.append({'label': str(i) + 'R', 'value': str(i) + 'R'})
+
+for i in range(38, 53, 2):
+    tailoring.append({'label': str(i) + 'S', 'value': str(i) + 'S'})
+    tailoring.append({'label': str(i) + 'R', 'value': str(i) + 'R'})
+    tailoring.append({'label': str(i) + 'L', 'value': str(i) + 'L'})
+
+tailoring.append({'label': str(54) + 'R', 'value': str(54) + 'R'})
+tailoring.append({'label': str(54) + 'L', 'value': str(54) + 'L'})
+accessories = []
+accessories.append({'label': "OS", 'value': "OS"})
+for i in range(26, 47, 2):
+    accessories.append({'label': str(i), 'value': str(i)})
+listingnumber = []
 
 
-class Grailed_Bot(object):
+def get_listing_number(url):
+    listingnumber = ""
+    index = 0
 
-    def __init__(self, item, shoe_sizes, top_sizes, pants_sizes, tailoring_sizes, accesories_sizes, item_type):
+    for i in range(0, len(url)):
+        if url[i].isdigit():
+            index = i
+            break
 
-        self.grailed_url = 'https://www.grailed.com'
-        self.item = item
-        self.shoe_sizes = shoe_sizes
-        self.top_sizes = top_sizes
-        self.pants_sizes = pants_sizes
-        self.tailoring_sizes = tailoring_sizes
-        self.accesories_sizes = accesories_sizes
-        self.item_type = item_type
+    print(index)
 
-        chromedriver = "C:\\Users\\Lu\\Downloads\\chromedriver_win32\\chromedriver.exe"
-        self.driver = webdriver.Chrome(chromedriver)
-
-    def input_user_specs(self):
-
-        # clicks drop down menu so that user can input their sizes
-        size_drop_down_button = self.driver.find_element_by_xpath(
-            '//*[@id="shop"]/div/div/div/div[2]/div/div[1]/div/div/div/div[3]')
-        size_drop_down_button.click()
-
-        time.sleep(3)
-
-        # hides the footer which sometimes covers up the sizes we want to click
-        annoying_footer = self.driver.find_element_by_xpath('//*[@id="trust_sticky_footer"]/div')
-        self.driver.execute_script("arguments[0].style.visibility='hidden'", annoying_footer)
-
-        # hides the header which sometimes covers up the sizes we want to click
-        annoying_header = self.driver.find_element_by_xpath('//*[@id="globalHeader"]/div/div[1]/div[2]')
-        self.driver.execute_script("arguments[0].style.visibility='hidden'", annoying_header)
-
-        # hides another header which covers up sizes
-        another_annoying_header = self.driver.find_element_by_xpath('//*[@id="globalHeader"]/div/div[1]')
-        self.driver.execute_script("arguments[0].style.visibility='hidden'", another_annoying_header)
-
-        # Opens drop downs where users can input their sizes
-        size_type_options = self.driver.find_element_by_class_name('sizes-wrapper')
-        size_type_buttons = size_type_options.find_elements_by_class_name('filter-category-item-header')
-        time.sleep(3)
-        for size_type_button in size_type_buttons:
-            size_type_button.click()
-            time.sleep(1)
-
-        if self.item_type == "Tops" or self.item_type == "Outerwear":
-            tops_sizes = self.driver.find_element_by_xpath(
-                '//*[@id="shop"]/div/div/div/div[2]/div/div[1]/div/div/div/div[3]/div[2]/div/span[1]/div[2]')
-            tops_sizes_list = tops_sizes.find_elements_by_class_name('active-indicator')
-
-            for top_size in tops_sizes_list:
-                if top_size.text in self.top_sizes:
-                    top_size.click()
-                time.sleep(1)
-
-        elif self.item_type == "Footwear":
-            footwear_sizes = self.driver.find_element_by_xpath(
-                '//*[@id="shop"]/div/div/div/div[2]/div/div[1]/div/div/div/div[3]/div[2]/div/span[3]/div[2]')
-            footwear_sizes_list = footwear_sizes.find_elements_by_class_name('active-indicator')
-
-            for footwear_size in footwear_sizes_list:
-                if footwear_size.text in self.shoe_sizes:
-                    footwear_size.click()
-                time.sleep(1)
-
-        # selects user sizes for pants
-        elif self.item_type == "Bottoms":
-            pants_sizes = self.driver.find_element_by_xpath(
-                '//*[@id="shop"]/div/div/div/div[2]/div/div[1]/div/div/div/div[3]/div[2]/div/span[2]/div[2]')
-            pants_sizes_list = pants_sizes.find_elements_by_class_name('active-indicator')
-
-            for pant_size in pants_sizes_list:
-                if pant_size.text in self.pants_sizes:
-                    pant_size.click()
-                time.sleep(1)
-
-        # selects user sizes for tailoring
-        elif self.item_type == "Tailoring":
-            tailoring_sizes = self.driver.find_element_by_xpath(
-                '//*[@id="shop"]/div/div/div/div[2]/div/div[1]/div/div/div/div[3]/div[2]/div/span[4]/div[2]')
-            tailoring_sizes_list = tailoring_sizes.find_elements_by_class_name('active-indicator')
-
-            for tailoring_size in tailoring_sizes_list:
-                if tailoring_size.text in self.tailoring_sizes:
-                    tailoring_size.click()
-                time.sleep(1)
-
+    for i in range(index, len(url)):
+        if url[i].isdigit():
+            listingnumber += url[i]
         else:
-            accessories_sizes = self.driver.find_element_by_xpath(
-                '//*[@id="shop"]/div/div/div/div[2]/div/div[1]/div/div/div/div[3]/div[2]/div/span[5]/div[2]')
-            accessories_sizes_list = accessories_sizes.find_elements_by_class_name('active-indicator')
+            break
 
-            for accessories_size in accessories_sizes_list:
-                if accessories_size.text in self.accesories_sizes:
-                    accessories_size.click()
-                time.sleep(2)
-
-    def scrape_product(self):
-
-        urls = []
-        prices = []
-        descriptions = []
-        shipping_costs = []
-        user_ratings = []
-
-        item = self.item
-        with open(item + '.csv', 'w', newline='', encoding='utf-8') as new_file:
-            csv_writer = csv.writer(new_file)
-            csv_writer.writerow(['productnumber', 'price', 'shipping price', 'total price', 'description', 'user rating', 'url'])
-
-        print(f"Searching for {item}.")
-        self.driver.get(self.grailed_url)
-
-        # Searches for item in search bar
-        search_input = self.driver.find_element_by_id("globalheader_search")
-        time.sleep(2)
-        search_input.send_keys(item)
-
-        time.sleep(2)
-
-        search_button = self.driver.find_element_by_xpath('//*[@id="globalHeader"]/div/div[1]/div[2]/div[1]/button')
-        search_button.click()
-
-        time.sleep(5)
-
-        if self.item_type != "None of the above":
-            self.input_user_specs()
-
-        # script which auto scrolls until very end of the page so that all products will load
-        lenOfPage = self.driver.execute_script(
-            "window.scrollTo(0, document.body.scrollHeight);var lenOfPage=document.body.scrollHeight;return lenOfPage;")
-        match = False
-        while (match == False):
-            lastCount = lenOfPage
-            time.sleep(3)
-            lenOfPage = self.driver.execute_script(
-                "window.scrollTo(0, document.body.scrollHeight);var lenOfPage=document.body.scrollHeight;return lenOfPage;")
-            if lastCount == lenOfPage:
-                match = True
-
-        time.sleep(2)
-
-        # parses html for each feed item to get the URLs
-        feed_items = self.driver.find_elements_by_class_name('feed-item')
-        for feed_item in feed_items:
-            soup = BeautifulSoup(feed_item.get_attribute("innerHTML"), 'lxml')
-            link = soup.find('a')
-            if link == None:
-                break
-            finallink = "https://www.grailed.com" + (link.get('href'))
-            urls.append(finallink)
-
-        for url in urls:
-            print(url)
-            price = self.get_product_price(url)
-            prices.append(price)
-            print(price)
-
-            description = self.get_product_description(url)
-            descriptions.append(description)
-            print(description)
-
-            shipping_cost = self.get_shipping_price(url)
-            shipping_costs.append(shipping_cost)
-            print(shipping_cost)
-
-            user_rating = self.get_user_rating(url)
-            user_ratings.append(user_rating)
-            print(user_rating)
+    return listingnumber
 
 
+def generate_csv(listingnumber):
+    with open(listingnumber + '.csv', 'w', newline='', encoding='utf-8') as new_file:
+        csv_writer = csv.writer(new_file)
+        csv_writer.writerow(
+            ['date', 'price', 'shipping price', 'total price', 'description', 'user rating'])
 
-            with open(item + '.csv', 'a', newline='', encoding='utf-8') as add_file:
-                csv_writer = csv.writer(add_file)
-                csv_writer.writerow(
-                    [str(len(user_ratings)), price, shipping_cost, int(price) + int(shipping_cost), description, user_rating, url])
 
-        print("Done")
+app.layout = html.Div([
+    dcc.Tabs(id="tabs", children=[
 
-        return prices, shipping_costs, descriptions, user_ratings, urls
+        dcc.Tab(label='Product search', children=[
 
-    def get_product_price(self, url):
+            html.Br(),
 
-        self.driver.get(url)
+            html.H2(children="Welcome to the Grailed Automation Tool", style={
+                'textAlign': 'center',
+            }),
+            html.Br(),
 
-        time.sleep(2)
+            dbc.Row(dbc.Col(html.Div(
+                [
+                    html.H5(children="Type in the product you want to search for (be as descriptive as possible): "),
+                    dcc.Input(id='input-1-state', type='text', value='Product Name')
 
-        price = "Not Available"
+                ]))),
 
-        try:
-            price = self.driver.find_elements_by_class_name("-price _has-drops").text
-        except:
-            pass
+            html.Br(),
+            dbc.Row(dbc.Col(html.Div([
+                html.H5(children="Choose the type of product you are searching for: "),
+                dcc.Dropdown(
+                    id='input-2-state',
+                    options=[
+                        {'label': 'Tops', 'value': 'Tops'},
+                        {'label': 'Bottoms', 'value': 'Bottoms'},
+                        {'label': 'Outerwear', 'value': 'Outerwear'},
+                        {'label': 'Footwear', 'value': 'Footwear'},
+                        {'label': 'Tailoring', 'value': 'Tailoring'},
+                        {'label': 'Accessories', 'value': 'Accessories'},
+                        {'label': 'None of the above', 'value': 'None of the above'}
+                    ],
+                    value='Please choose the type of product you are searching for',
+                    multi=False
+                )]))),
 
-        try:
-            price = self.driver.find_element_by_class_name("-price").text
-        except:
-            pass
+            html.Br(),
+            html.Div([
+                dbc.Row(dbc.Col(html.Div(html.H5(children="Select sizing that is relevant to your search: ")))),
+                dbc.Row([
+                    dbc.Col(html.Div([html.H6(children="Tops/outerwear sizing: "),
+                                      dcc.Dropdown(
+                                          id='input-3-state',
+                                          options=[
+                                              {'label': 'XXS', 'value': 'XXS/40'},
+                                              {'label': 'XS', 'value': 'XS/42'},
+                                              {'label': 'S', 'value': 'S44-46'},
+                                              {'label': 'M', 'value': 'M48-50'},
+                                              {'label': 'L', 'value': 'L/52-54'},
+                                              {'label': 'XL', 'value': 'XL/56'},
+                                              {'label': 'XXL', 'value': 'XXL/58'}
+                                          ],
+                                          value='Select your sizing for tops/outerwear',
+                                          multi=True
+                                      )])),
 
-        if price != "Not Available":
-            price = int(price[1:])
+                    dbc.Col(html.Div([html.H6(children="Bottoms/pants sizing: "),
+                                      dcc.Dropdown(
+                                          id='input-4-state',
+                                          options=bottoms,
+                                          value='Select your sizing for pants/bottoms',
+                                          multi=True
+                                      )])),
 
-        return price
+                    dbc.Col(html.Div([html.H6(children="Footwear sizing: "),
+                                      dcc.Dropdown(
+                                          id='input-5-state',
+                                          options=footwear,
+                                          value='Select your sizing for footwear',
+                                          multi=True
+                                      )])),
+                ])]),
 
-    def get_product_description(self, url):
+            html.Br(),
+            html.Div([
+                dbc.Row([
+                    dbc.Col(html.Div([html.H6(children="Tailoring sizing: "),
+                                      dcc.Dropdown(
+                                          id='input-6-state',
+                                          options=tailoring,
+                                          value='Select your sizing for tailoring',
+                                          multi=True
+                                      )])),
+                    dbc.Col(html.Div([html.H6(children="Accessories sizing: "),
+                                      dcc.Dropdown(
+                                          id='input-7-state',
+                                          options=accessories,
+                                          value='Select your sizing for accessories',
+                                          multi=True
+                                      )]))])]),
+            html.Button(id='submit-button', n_clicks=0, children='Submit'),
+            html.H6("Here are all of the listings that we found", style={
+                'textAlign': 'center',
+            }),
+            html.Br(),
+            html.Div(id='output-state'),
+            html.Div(id='hover-info'),
+            html.Div(id='output-state2')
+        ]),
 
-        self.driver.get(url)
-        time.sleep(2)
+        dcc.Tab(label="Product Tracking", children=[
+            html.H6(
+                children="Type in the url of a product that you would like to add to your tracking list"),
+            dcc.Input(id='input-track-url', type='text', value='Paste the url of the product'),
+            html.Button(id='submit-button2', n_clicks=0, children='Submit'),
+            html.H6("Here is a line graph that will track the price of the product over time: "),
+            html.H6(
+                children="Choose up to 10 of the products that you are tracking to see visualization of price"),
+            html.Div(id='products-to-track-test'),
 
-        description = "Not Available"
+            dcc.Dropdown(
+                id='products-to-track',
+                # options=listingnumber,
+                value='Choose products to visualize',
+                multi=True
+            ),
+            # html.Button(id='submit-button3', n_clicks=0, children='Submit'),
+            html.Div(id='live-update-graph1'),
+            html.Div(id='live-update-graph2'),
+            html.Div(id='live-update-graph3'),
+            html.Div(id='live-update-graph4'),
+            html.Div(id='live-update-graph5'),
+            html.Div(id='live-update-graph6'),
+            html.Div(id='live-update-graph7'),
+            html.Div(id='live-update-graph8'),
+            html.Div(id='live-update-graph9'),
+            html.Div(id='live-update-graph10'),
+            dcc.Interval(
+                id='interval-component',
+                interval=60000 * 5,  # in milliseconds
+                n_intervals=0
+            ),
 
-        try:
-            description = self.driver.find_element_by_class_name('listing-description')
+        ])
+    ])
+])
 
-        except:
-            pass
 
-        if description != "Not Available":
-            soup = BeautifulSoup(description.get_attribute("innerHTML"), 'lxml')
-            description = soup.findAll('p')
+@app.callback([Output('output-state', 'children'),
+               Output('output-state2', 'children')],
+              [Input('submit-button', 'n_clicks')],
+              [State('input-1-state', 'value'),
+               State('input-2-state', 'value'),
+               State('input-3-state', 'value'),
+               State('input-4-state', 'value'),
+               State('input-5-state', 'value'),
+               State('input-6-state', 'value'),
+               State('input-7-state', 'value')])
 
-        return description
 
-    def get_shipping_price(self, url):
+def multi_output(n_clicks, input1, input2, input3, input4, input5, input6, input7):
+    if input1 != "Product Name":
+        GrailedBot = Grailed_Bot(str(input1), input5, input3, input4, input6, input7, input2)
+        GrailedBot.scrape_product()
+        print("made it here")
+        df = pd.read_csv(input1 + '.csv')
+        table = generate_table(df)
+        graph = generate_stacked_chart(input1 + '.csv')
 
-        shipping_price = 0
+        return table, graph
+    else:
+        raise PreventUpdate
 
-        time.sleep(2)
 
-        try:
-            shipping_price = self.driver.find_element_by_class_name('-shipping-cost').text
-        except:
-            pass
+def generate_table(dataframe, max_rows=10, ):
+    return html.Table(
+        # Header
+        [html.Tr([html.Th(col) for col in dataframe.columns])] +
 
-        if shipping_price == "N/A":
-            shipping_price = 0
+        # Body
+        [html.Tr([
+            html.Td(dataframe.iloc[i][col]) for col in dataframe.columns
+        ]) for i in range(min(len(dataframe), max_rows))]
+    )
 
-        if shipping_price != 0:
-            shipping_price = int(shipping_price[2:])
 
-        return shipping_price
+def generate_stacked_chart(csvname):
+    shipping_costs = []
+    product_price = []
+    product_number = []
+    urls = []
+    hovertext = []
+    with open(csvname, 'r') as csv_file:
+        csv_reader = csv.reader(csv_file)
+        next(csv_reader)
+        for line in csv_reader:
+            shipping_costs.append(line[2])
+            product_price.append(line[1])
+            urls.append(line[6])
+            product_number.append(line[0])
+            hovertext.append("Shipping Price: $" + line[2] + "<br>" +
+                             "Total Price with shipping: $" + line[3] + "<br>" "Seller rating: " + line[
+                                 5] + "<br>" + "Url: " + line[6])
 
-    def get_user_rating(self, url):
+    trace1 = go.Bar(
+        x=product_number,
+        y=product_price,
+        name='Product Price',
+        hovertemplate='Price : $%{y:.2f}'
+                      '<br>%{text}',
+        text=hovertext
+    )
 
-        user_feedback = "Not Available"
+    trace2 = go.Bar(
+        x=product_number,
+        y=shipping_costs,
+        name="Shipping Costs"
+    )
 
-        self.driver.get(url)
-        time.sleep(2)
+    return dcc.Graph(
+        id='stacked_total_cost_bar_chart',
+        figure=go.Figure(data=[trace1, trace2],
+                         layout=go.Layout(barmode='stack', title="Stacked Bar Chart of Listing Costs",
+                                          xaxis=go.layout.XAxis(
+                                              title=go.layout.xaxis.Title(
+                                                  text='Product Number'
+                                              )
+                                          ),
 
-        # hides the footer which sometimes covers the user rating
-        annoying_footer = self.driver.find_element_by_xpath('//*[@id="trust_sticky_footer"]/div')
-        self.driver.execute_script("arguments[0].style.visibility='hidden'", annoying_footer)
+                                          yaxis=go.layout.YAxis(
+                                              title=go.layout.yaxis.Title(
+                                                  text='Price $(USD)'
+                                              )
+                                          )
+                                          )
+                         )
+    )
 
-        # Hovers over the stars which will allow the user rating to pop up
-        try:
-            user_rating_button = self.driver.find_element_by_xpath(
-                '/html/body/div[7]/div[2]/div[1]/div[3]/div[6]/div[2]/a[1]/div')
-            hover = ActionChains(self.driver).move_to_element(user_rating_button)
-            hover.perform()
 
-        except:
-            pass
+@app.callback(Output('products-to-track', 'options'),
+              [Input('submit-button2', 'n_clicks')],
+              [State('input-track-url', 'value')])
+def add_to_tracking(n_clicks, input1):
+    if input1 == "Paste the url of the product":
+        raise PreventUpdate
+    else:
+        generate_csv(get_listing_number(input1))
+        listingnumber.append({'label': get_listing_number(input1), 'value': get_listing_number(input1)})
+        return listingnumber
 
-        time.sleep(2)
 
-        try:
-            user_feedback = self.driver.find_element_by_class_name('react-tooltip-lite').get_attribute('innerHTML')
-        except:
-            pass
+@app.callback([Output('live-update-graph1', 'children'),
+               Output('live-update-graph2', 'children'),
+               Output('live-update-graph3', 'children'),
+               Output('live-update-graph4', 'children'),
+               Output('live-update-graph5', 'children'),
+               Output('live-update-graph6', 'children'),
+               Output('live-update-graph7', 'children'),
+               Output('live-update-graph8', 'children'),
+               Output('live-update-graph9', 'children'),
+               Output('live-update-graph10', 'children')],
+              [Input('products-to-track', 'value'), Input('interval-component', 'n_intervals')])
+def update_price_visualization(input1, n):
+    print(input1)
+    list_of_graphs = []
+    if input1 != "Choose products to visualize":
+        for listingnumber in input1:
+            producttracker = Product_Tracker(listingnumber)
+            producttracker.scrape_product()
+            df = pd.read_csv(listingnumber + '.csv')
+            print("made it here")
+            trace_shipping = go.Scatter(
+                x=df['date'],
+                y=df['shipping price'],
+                name="shipping price",
+                line=dict(color='#17BECF'),
+                opacity=0.8)
 
-        if user_feedback != "Not Available":
-            slash_index = user_feedback.find("/")
-            user_feedback = float(user_feedback[0:slash_index])
-        return user_feedback
+            trace_price = go.Scatter(
+                x=df['date'],
+                y=df['price'],
+                name="Product Price",
+                line=dict(color='#7F7F7F'),
+                opacity=0.8)
+
+            trace_total = go.Scatter(
+                x=df['date'],
+                y=df['total price'],
+                name="Total Price Price",
+                line=dict(color='#7F7F7F'),
+                opacity=0.8)
+
+            data = [trace_price, trace_shipping, trace_total]
+            layout = dict(
+                title=listingnumber,
+            )
+
+            fig = dict(data=data, layout=layout)
+
+            list_of_graphs.append(dcc.Graph(figure=fig))
+
+        while len(list_of_graphs) < 10:
+            list_of_graphs.append("Not currently being visualized")
+
+        return list_of_graphs
+    else:
+        raise PreventUpdate
+
+
+if __name__ == '__main__':
+    app.run_server(debug=True)
