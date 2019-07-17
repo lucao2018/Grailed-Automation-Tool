@@ -73,10 +73,12 @@ def generate_csv(listingnumber):
 app.layout = html.Div([
     dcc.Tabs(id="tabs", children=[
         dcc.Tab(label='Product search', children=[
-            html.H4(children="Welcome to the Grailed Automation Tool"),
-            html.H6(children="Type in the product you want to search for: "),
-            dcc.Input(id='input-1-state', type='text', value='Product Name (be as descriptive as possible)'),
-            html.H6(children="Choose the type of product you want to search for"),
+            html.H4(children="Welcome to the Grailed Automation Tool", style={
+                'textAlign': 'center',
+            }),
+            html.H6(children="Type in the product you want to search for (be as descriptive as possible): "),
+            dcc.Input(id='input-1-state', type='text', value='Product Name'),
+            html.H6(children="Choose the type of product you are searching for: "),
             dcc.Dropdown(
                 id='input-2-state',
                 options=[
@@ -91,7 +93,7 @@ app.layout = html.Div([
                 value='Please choose the type of product you are searching for',
                 multi=False
             ),
-            html.H6(children="Select sizing that is relevant to your search query: "),
+            html.H6(children="Select sizing that is relevant to your search: "),
             html.H6(children="Tops/outerwear sizing: "),
             dcc.Dropdown(
                 id='input-3-state',
@@ -136,9 +138,10 @@ app.layout = html.Div([
                 multi=True
             ),
             html.Button(id='submit-button', n_clicks=0, children='Submit'),
-            html.H6("Here are all of the listings that we found"),
+            html.H6("Here are all of the listings that we found", style={
+                'textAlign': 'center',
+            }),
             html.Div(id='output-state'),
-            html.H6("Here is a stacked bar chart of all of the listing costs"),
             html.Div(id='hover-info'),
             html.Div(id='output-state2')
         ]),
@@ -190,7 +193,7 @@ app.layout = html.Div([
                State('input-6-state', 'value'),
                State('input-7-state', 'value')])
 def multi_output(n_clicks, input1, input2, input3, input4, input5, input6, input7):
-    if input1 != "Product Name (be as descriptive as possible)":
+    if input1 != "Product Name":
         GrailedBot = Grailed_Bot(str(input1), input5, input3, input4, input6, input7, input2)
         GrailedBot.scrape_product()
         print("made it here")
@@ -251,7 +254,7 @@ def generate_stacked_chart(csvname):
     return dcc.Graph(
         id='stacked_total_cost_bar_chart',
         figure=go.Figure(data=[trace1, trace2],
-                         layout=go.Layout(barmode='stack',
+                         layout=go.Layout(barmode='stack', title = "Stacked Bar Chart of Listing Costs",
                                           xaxis=go.layout.XAxis(
                                               title=go.layout.xaxis.Title(
                                                   text='Product Number'
