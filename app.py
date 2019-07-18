@@ -165,10 +165,40 @@ app.layout = html.Div([
                                           multi=True
                                       )]))])]),
             html.Button(id='submit-button', n_clicks=0, children='Submit'),
-            html.H6("Here are all of the listings that we found", style={
+            html.H5("Here are all of the listings that we found", style={
                 'textAlign': 'center',
             }),
             html.Br(),
+            html.Div(
+                dash_table.DataTable(
+                    id='datatable',
+                    style_table={'overflowX': 'scroll'},
+                    style_cell={
+                        'whiteSpace': 'normal'
+                    },
+                    columns=[{"name": "Product Number", "id": "Product Number"},
+                             {"name": "Price ($)", "id": "Price ($)"},
+                             {"name": "Shipping Price ($)", "id": "Shipping Price ($)"},
+                             {"name": "Total Price ($)", "id": "Total Price ($)"},
+                             {"name": "Description", "id": "Description"},
+                             {"name": "Seller Rating", "id": "Seller Rating"},
+                             {"name": "URL", "id": "URL"}],
+                    data = [],
+                    css=[{
+                        'selector': '.dash-cell div.dash-cell-value',
+                        'rule': 'display: inline; white-space: inherit; overflow: inherit; text-overflow: inherit;'
+                    }],
+                    editable=True,
+                    sort_action="native",
+                    sort_mode="multi",
+                    row_selectable="multi",
+                    row_deletable=True,
+                    selected_rows=[],
+                    page_action="native",
+                    page_current=0,
+                    page_size=15,
+                )),
+
             html.Div(id='output-state'),
             html.Div(id='hover-info'),
             html.Div(id='output-state2')
@@ -211,8 +241,7 @@ app.layout = html.Div([
 ])
 
 
-@app.callback([Output('output-state', 'children'),
-               Output('output-state2', 'children')],
+@app.callback([Output('output-state', 'children'), Output('datatable', 'data')],
               [Input('submit-button', 'n_clicks')],
               [State('input-1-state', 'value'),
                State('input-2-state', 'value'),
@@ -225,43 +254,32 @@ def multi_output(n_clicks, input1, input2, input3, input4, input5, input6, input
     if input1 != "Product Name":
         GrailedBot = Grailed_Bot(str(input1), input5, input3, input4, input6, input7, input2)
         GrailedBot.scrape_product()
-        print("made it here")
         df = pd.read_csv(input1 + '.csv')
-        table = generate_table(df)
+        data = df.to_dict('records')
         graph = generate_stacked_chart(input1 + '.csv')
 
-        return table, graph
+        return graph, data
+        # print("made it here")
+        # graph = generate_stacked_chart('cdg converse' + '.csv')
     else:
         raise PreventUpdate
 
-
-def generate_table(df):
-    return dash_table.DataTable(
-        id='datatable-interactivity',
-        columns=[
-            {"name": i, "id": i, "deletable": True} for i in df.columns
-        ],
-        style_table={'overflowX': 'scroll'},
-        style_cell={
-            'minWidth': '0px', 'maxWidth': '200px',
-            'whiteSpace': 'normal'
-        },
-        css=[{
-            'selector': '.dash-cell div.dash-cell-value',
-            'rule': 'display: inline; white-space: inherit; overflow: inherit; text-overflow: inherit;'
-        }],
-        data=df.to_dict('records'),
-        editable=True,
-        sort_action="native",
-        sort_mode="multi",
-        row_selectable="multi",
-        row_deletable=True,
-        selected_rows=[],
-        page_action="native",
-        page_current=0,
-        page_size=15,
-    )
-
+# @app.callback(Output('output-state', 'children'),
+#               [Input('submit-button', 'n_clicks')],
+#               [State('input-1-state', 'value'),
+#                State('input-2-state', 'value'),
+#                State('input-3-state', 'value'),
+#                State('input-4-state', 'value'),
+#                State('input-5-state', 'value'),
+#                State('input-6-state', 'value'),
+#                State('input-7-state', 'value')])
+# def multi_output(n_clicks, input1, input2, input3, input4, input5, input6, input7):
+#     if input1 != "Product Name":
+#         df = pd.read_csv('cdg converse.csv')
+#         graph = generate_stacked_chart(input1 + '.csv')
+#         return graph
+#     else:
+#         raise PreventUpdate
 
 #
 # def generate_table(dataframe, max_rows=10, ):
@@ -402,4 +420,3 @@ def update_price_visualization(input1, n):
 
 if __name__ == '__main__':
     app.run_server(debug=True)
-1
