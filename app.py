@@ -8,10 +8,13 @@ from dash.dependencies import Input, Output, State
 from Grailed_Bot import Grailed_Bot
 from Grailed_Bot import Product_Tracker
 from dash.exceptions import PreventUpdate
+import dash_bootstrap_components as dbc
+import dash_table
 
 external_stylesheets = ['https://codepen.io/chriddyp/pen/bWLwgP.css']
 
-app = dash.Dash(__name__, external_stylesheets=external_stylesheets)
+# app = dash.Dash(__name__, external_stylesheets=[dbc.themes.GRID], )
+app = dash.Dash(__name__, external_stylesheets=[dbc.themes.BOOTSTRAP])
 
 bottoms = []
 for i in range(26, 45):
@@ -72,88 +75,114 @@ def generate_csv(listingnumber):
 
 app.layout = html.Div([
     dcc.Tabs(id="tabs", children=[
+
         dcc.Tab(label='Product search', children=[
-            html.H4(children="Welcome to the Grailed Automation Tool", style={
+
+            html.Br(),
+
+            html.H2(children="Welcome to the Grailed Automation Tool", style={
                 'textAlign': 'center',
             }),
-            html.H6(children="Type in the product you want to search for (be as descriptive as possible): "),
-            dcc.Input(id='input-1-state', type='text', value='Product Name'),
-            html.H6(children="Choose the type of product you are searching for: "),
-            dcc.Dropdown(
-                id='input-2-state',
-                options=[
-                    {'label': 'Tops', 'value': 'Tops'},
-                    {'label': 'Bottoms', 'value': 'Bottoms'},
-                    {'label': 'Outerwear', 'value': 'Outerwear'},
-                    {'label': 'Footwear', 'value': 'Footwear'},
-                    {'label': 'Tailoring', 'value': 'Tailoring'},
-                    {'label': 'Accessories', 'value': 'Accessories'},
-                    {'label': 'None of the above', 'value': 'None of the above'}
-                ],
-                value='Please choose the type of product you are searching for',
-                multi=False
-            ),
-            html.H6(children="Select sizing that is relevant to your search: "),
-            html.H6(children="Tops/outerwear sizing: "),
-            dcc.Dropdown(
-                id='input-3-state',
-                options=[
-                    {'label': 'XXS', 'value': 'XXS/40'},
-                    {'label': 'XS', 'value': 'XS/42'},
-                    {'label': 'S', 'value': 'S44-46'},
-                    {'label': 'M', 'value': 'M48-50'},
-                    {'label': 'L', 'value': 'L/52-54'},
-                    {'label': 'XL', 'value': 'XL/56'},
-                    {'label': 'XXL', 'value': 'XXL/58'}
-                ],
-                value='Select your sizing for tops/outerwear',
-                multi=True
-            ),
-            html.H6(children="Bottoms/pants sizing: "),
-            dcc.Dropdown(
-                id='input-4-state',
-                options=bottoms,
-                value='Select your sizing for pants/bottoms',
-                multi=True
-            ),
-            html.H6(children="Footwear sizing: "),
-            dcc.Dropdown(
-                id='input-5-state',
-                options=footwear,
-                value='Select your sizing for footwear',
-                multi=True
-            ),
-            html.H6(children="Tailoring sizing: "),
-            dcc.Dropdown(
-                id='input-6-state',
-                options=tailoring,
-                value='Select your sizing for tailoring',
-                multi=True
-            ),
-            html.H6(children="Accessories sizing: "),
-            dcc.Dropdown(
-                id='input-7-state',
-                options=accessories,
-                value='Select your sizing for accessories',
-                multi=True
-            ),
+            html.Br(),
+
+            dbc.Row(dbc.Col(html.Div(
+                [
+                    html.H5(children="Type in the product you want to search for (be as descriptive as possible): "),
+                    dcc.Input(id='input-1-state', type='text', value='Product Name')
+
+                ]))),
+
+            html.Br(),
+            dbc.Row(dbc.Col(html.Div([
+                html.H5(children="Choose the type of product you are searching for: "),
+                dcc.Dropdown(
+                    id='input-2-state',
+                    options=[
+                        {'label': 'Tops', 'value': 'Tops'},
+                        {'label': 'Bottoms', 'value': 'Bottoms'},
+                        {'label': 'Outerwear', 'value': 'Outerwear'},
+                        {'label': 'Footwear', 'value': 'Footwear'},
+                        {'label': 'Tailoring', 'value': 'Tailoring'},
+                        {'label': 'Accessories', 'value': 'Accessories'},
+                        {'label': 'None of the above', 'value': 'None of the above'}
+                    ],
+                    value='Please choose the type of product you are searching for',
+                    multi=False
+                )]))),
+
+            html.Br(),
+            html.Div([
+                dbc.Row(dbc.Col(html.Div(html.H5(children="Select sizing that is relevant to your search: ")))),
+                dbc.Row([
+                    dbc.Col(html.Div([html.H6(children="Tops/outerwear sizing: "),
+                                      dcc.Dropdown(
+                                          id='input-3-state',
+                                          options=[
+                                              {'label': 'XXS', 'value': 'XXS/40'},
+                                              {'label': 'XS', 'value': 'XS/42'},
+                                              {'label': 'S', 'value': 'S44-46'},
+                                              {'label': 'M', 'value': 'M48-50'},
+                                              {'label': 'L', 'value': 'L/52-54'},
+                                              {'label': 'XL', 'value': 'XL/56'},
+                                              {'label': 'XXL', 'value': 'XXL/58'}
+                                          ],
+                                          value='Select your sizing for tops/outerwear',
+                                          multi=True
+                                      )])),
+
+                    dbc.Col(html.Div([html.H6(children="Bottoms/pants sizing: "),
+                                      dcc.Dropdown(
+                                          id='input-4-state',
+                                          options=bottoms,
+                                          value='Select your sizing for pants/bottoms',
+                                          multi=True
+                                      )])),
+
+                    dbc.Col(html.Div([html.H6(children="Footwear sizing: "),
+                                      dcc.Dropdown(
+                                          id='input-5-state',
+                                          options=footwear,
+                                          value='Select your sizing for footwear',
+                                          multi=True
+                                      )])),
+                ])]),
+
+            html.Br(),
+            html.Div([
+                dbc.Row([
+                    dbc.Col(html.Div([html.H6(children="Tailoring sizing: "),
+                                      dcc.Dropdown(
+                                          id='input-6-state',
+                                          options=tailoring,
+                                          value='Select your sizing for tailoring',
+                                          multi=True
+                                      )])),
+                    dbc.Col(html.Div([html.H6(children="Accessories sizing: "),
+                                      dcc.Dropdown(
+                                          id='input-7-state',
+                                          options=accessories,
+                                          value='Select your sizing for accessories',
+                                          multi=True
+                                      )]))])]),
             html.Button(id='submit-button', n_clicks=0, children='Submit'),
             html.H6("Here are all of the listings that we found", style={
                 'textAlign': 'center',
             }),
+            html.Br(),
             html.Div(id='output-state'),
             html.Div(id='hover-info'),
             html.Div(id='output-state2')
         ]),
 
         dcc.Tab(label="Product Tracking", children=[
-            html.H6(children="Type in the url of a product that you would like to add to your tracking list"),
+            html.Br(),
+            html.H4(
+                children="Type in the url of a product that you would like to add to your tracking list"),
             dcc.Input(id='input-track-url', type='text', value='Paste the url of the product'),
             html.Button(id='submit-button2', n_clicks=0, children='Submit'),
-            html.H6("Here is a line graph that will track the price of the product over time: "),
-            html.H6(children="Choose up to 10 of the products that you are tracking to see visualization of price"),
-            html.Div(id='products-to-track-test'),
-
+            html.Br(),
+            html.H6(
+                children="Choose up to 10 of the products that you are tracking to see live visualizations of their price"),
             dcc.Dropdown(
                 id='products-to-track',
                 # options=listingnumber,
@@ -206,16 +235,46 @@ def multi_output(n_clicks, input1, input2, input3, input4, input5, input6, input
         raise PreventUpdate
 
 
-def generate_table(dataframe, max_rows=10, ):
-    return html.Table(
-        # Header
-        [html.Tr([html.Th(col) for col in dataframe.columns])] +
-
-        # Body
-        [html.Tr([
-            html.Td(dataframe.iloc[i][col]) for col in dataframe.columns
-        ]) for i in range(min(len(dataframe), max_rows))]
+def generate_table(df):
+    return dash_table.DataTable(
+        id='datatable-interactivity',
+        columns=[
+            {"name": i, "id": i, "deletable": True} for i in df.columns
+        ],
+        style_table={'overflowX': 'scroll'},
+        style_cell={
+            'minWidth': '0px', 'maxWidth': '200px',
+            'whiteSpace': 'normal'
+        },
+        css=[{
+            'selector': '.dash-cell div.dash-cell-value',
+            'rule': 'display: inline; white-space: inherit; overflow: inherit; text-overflow: inherit;'
+        }],
+        data=df.to_dict('records'),
+        editable=True,
+        sort_action="native",
+        sort_mode="multi",
+        row_selectable="multi",
+        row_deletable=True,
+        selected_rows=[],
+        page_action="native",
+        page_current=0,
+        page_size=15,
     )
+
+
+#
+# def generate_table(dataframe, max_rows=10, ):
+#     return html.Table(
+#         # Header
+#         [html.Tr([html.Th(col) for col in dataframe.columns])] +
+#
+#         # Body
+#         [html.Tr([
+#             html.Td(dataframe.iloc[i][col]) for col in dataframe.columns
+#         ]) for i in range(min(len(dataframe), max_rows))],
+#
+#     )
 
 
 def generate_stacked_chart(csvname):
@@ -254,7 +313,7 @@ def generate_stacked_chart(csvname):
     return dcc.Graph(
         id='stacked_total_cost_bar_chart',
         figure=go.Figure(data=[trace1, trace2],
-                         layout=go.Layout(barmode='stack', title = "Stacked Bar Chart of Listing Costs",
+                         layout=go.Layout(barmode='stack', title="Stacked Bar Chart of Listing Costs",
                                           xaxis=go.layout.XAxis(
                                               title=go.layout.xaxis.Title(
                                                   text='Product Number'
@@ -343,3 +402,4 @@ def update_price_visualization(input1, n):
 
 if __name__ == '__main__':
     app.run_server(debug=True)
+1
