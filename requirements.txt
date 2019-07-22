@@ -1,0 +1,5 @@
+beautifulsoup4==4.7.1
+dash==1.0.1
+pandas==0.24.2
+plotly==3.10.0
+selenium==3.141.0
