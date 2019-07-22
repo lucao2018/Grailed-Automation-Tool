@@ -1,4 +1,3 @@
-import csv
 import dash
 import dash_core_components as dcc
 import dash_html_components as html
@@ -10,12 +9,14 @@ from Grailed_Bot import Product_Tracker
 from dash.exceptions import PreventUpdate
 import dash_bootstrap_components as dbc
 import dash_table
+from Grailed_Bot import get_listing_number
+from Grailed_Bot import generate_csv
 
 external_stylesheets = ['https://codepen.io/chriddyp/pen/bWLwgP.css']
 
-# app = dash.Dash(__name__, external_stylesheets=[dbc.themes.GRID], )
 app = dash.Dash(__name__, external_stylesheets=[dbc.themes.BOOTSTRAP])
 
+# set up lists with possible user sizings
 bottoms = []
 for i in range(26, 45):
     bottoms.append({'label': str(i), 'value': str(i)})
@@ -27,6 +28,7 @@ while x <= 15:
         x = int(x)
     footwear.append({'label': str(x), 'value': str(x)})
     x += .5
+
 tailoring = []
 for i in range(34, 37, 2):
     tailoring.append({'label': str(i) + 'S', 'value': str(i) + 'S'})
@@ -39,39 +41,14 @@ for i in range(38, 53, 2):
 
 tailoring.append({'label': str(54) + 'R', 'value': str(54) + 'R'})
 tailoring.append({'label': str(54) + 'L', 'value': str(54) + 'L'})
+
 accessories = []
 accessories.append({'label': "OS", 'value': "OS"})
 for i in range(26, 47, 2):
     accessories.append({'label': str(i), 'value': str(i)})
+
+# keep track of listing numbers for tracked products
 listingnumber = []
-
-
-def get_listing_number(url):
-    listingnumber = ""
-    index = 0
-
-    for i in range(0, len(url)):
-        if url[i].isdigit():
-            index = i
-            break
-
-    print(index)
-
-    for i in range(index, len(url)):
-        if url[i].isdigit():
-            listingnumber += url[i]
-        else:
-            break
-
-    return listingnumber
-
-
-def generate_csv(listingnumber):
-    with open(listingnumber + '.csv', 'w', newline='', encoding='utf-8') as new_file:
-        csv_writer = csv.writer(new_file)
-        csv_writer.writerow(
-            ['date', 'price', 'shipping price', 'total price', 'description', 'user rating'])
-
 
 app.layout = html.Div([
     dcc.Tabs(id="tabs", children=[
@@ -168,6 +145,7 @@ app.layout = html.Div([
             html.H5("Here are all of the listings that we found", style={
                 'textAlign': 'center',
             }),
+            html.Div(id='intermediate-value', style={'display': 'none'}),
             html.Br(),
             html.Div(
                 dash_table.DataTable(
@@ -183,25 +161,29 @@ app.layout = html.Div([
                              {"name": "Description", "id": "Description"},
                              {"name": "Seller Rating", "id": "Seller Rating"},
                              {"name": "URL", "id": "URL"}],
-                    data = [],
+                    data=[],
                     css=[{
                         'selector': '.dash-cell div.dash-cell-value',
                         'rule': 'display: inline; white-space: inherit; overflow: inherit; text-overflow: inherit;'
                     }],
                     editable=True,
-                    sort_action="native",
+                    sort_action="custom",
                     sort_mode="multi",
+                    sort_by=[],
                     row_selectable="multi",
                     row_deletable=True,
                     selected_rows=[],
-                    page_action="native",
+                    page_action="custom",
                     page_current=0,
                     page_size=15,
                 )),
-
             html.Div(id='output-state'),
-            html.Div(id='hover-info'),
-            html.Div(id='output-state2')
+            html.Div(dcc.Graph(
+                id="datatable-interactivity-container"
+            )),
+            html.Div([
+                html.Pre(id='hover-data')
+            ])
         ]),
 
         dcc.Tab(label="Product Tracking", children=[
@@ -211,15 +193,15 @@ app.layout = html.Div([
             dcc.Input(id='input-track-url', type='text', value='Paste the url of the product'),
             html.Button(id='submit-button2', n_clicks=0, children='Submit'),
             html.Br(),
+            html.Br(),
+            html.Br(),
             html.H6(
                 children="Choose up to 10 of the products that you are tracking to see live visualizations of their price"),
             dcc.Dropdown(
                 id='products-to-track',
-                # options=listingnumber,
                 value='Choose products to visualize',
                 multi=True
             ),
-            # html.Button(id='submit-button3', n_clicks=0, children='Submit'),
             html.Div(id='live-update-graph1'),
             html.Div(id='live-update-graph2'),
             html.Div(id='live-update-graph3'),
@@ -232,7 +214,7 @@ app.layout = html.Div([
             html.Div(id='live-update-graph10'),
             dcc.Interval(
                 id='interval-component',
-                interval=60000 * 5,  # in milliseconds
+                interval=60000 * 5,
                 n_intervals=0
             ),
 
@@ -241,7 +223,7 @@ app.layout = html.Div([
 ])
 
 
-@app.callback([Output('output-state', 'children'), Output('datatable', 'data')],
+@app.callback(Output('intermediate-value', 'children'),
               [Input('submit-button', 'n_clicks')],
               [State('input-1-state', 'value'),
                State('input-2-state', 'value'),
@@ -250,102 +232,103 @@ app.layout = html.Div([
                State('input-5-state', 'value'),
                State('input-6-state', 'value'),
                State('input-7-state', 'value')])
-def multi_output(n_clicks, input1, input2, input3, input4, input5, input6, input7):
+def scrape_product(n_clicks, input1, input2, input3, input4, input5, input6, input7):
     if input1 != "Product Name":
         GrailedBot = Grailed_Bot(str(input1), input5, input3, input4, input6, input7, input2)
         GrailedBot.scrape_product()
-        df = pd.read_csv(input1 + '.csv')
-        data = df.to_dict('records')
-        graph = generate_stacked_chart(input1 + '.csv')
 
-        return graph, data
-        # print("made it here")
-        # graph = generate_stacked_chart('cdg converse' + '.csv')
+        return input1
+
     else:
         raise PreventUpdate
 
-# @app.callback(Output('output-state', 'children'),
-#               [Input('submit-button', 'n_clicks')],
-#               [State('input-1-state', 'value'),
-#                State('input-2-state', 'value'),
-#                State('input-3-state', 'value'),
-#                State('input-4-state', 'value'),
-#                State('input-5-state', 'value'),
-#                State('input-6-state', 'value'),
-#                State('input-7-state', 'value')])
-# def multi_output(n_clicks, input1, input2, input3, input4, input5, input6, input7):
-#     if input1 != "Product Name":
-#         df = pd.read_csv('cdg converse.csv')
-#         graph = generate_stacked_chart(input1 + '.csv')
-#         return graph
-#     else:
-#         raise PreventUpdate
 
-#
-# def generate_table(dataframe, max_rows=10, ):
-#     return html.Table(
-#         # Header
-#         [html.Tr([html.Th(col) for col in dataframe.columns])] +
-#
-#         # Body
-#         [html.Tr([
-#             html.Td(dataframe.iloc[i][col]) for col in dataframe.columns
-#         ]) for i in range(min(len(dataframe), max_rows))],
-#
-#     )
+@app.callback(
+    Output('datatable', "data"),
+    [Input('datatable', "page_current"),
+     Input('datatable', "page_size"),
+     Input('datatable', "sort_by"), Input('intermediate-value', 'children')])
+def update_table(page_current, page_size, sort_by, input1):
+    if input1 is None:
+        raise PreventUpdate
+    else:
+        df = pd.read_csv(input1 + '.csv')
+        if len(sort_by):
+            dff = df.sort_values(
+                [col['column_id'] for col in sort_by],
+                ascending=[
+                    col['direction'] == 'asc'
+                    for col in sort_by
+                ],
+                inplace=False
+            )
+        else:
+            dff = df
+
+        return dff.iloc[
+               page_current * page_size:(page_current + 1) * page_size
+               ].to_dict('records')
 
 
-def generate_stacked_chart(csvname):
-    shipping_costs = []
-    product_price = []
-    product_number = []
-    urls = []
-    hovertext = []
-    with open(csvname, 'r') as csv_file:
-        csv_reader = csv.reader(csv_file)
-        next(csv_reader)
-        for line in csv_reader:
-            shipping_costs.append(line[2])
-            product_price.append(line[1])
-            urls.append(line[6])
-            product_number.append(line[0])
-            hovertext.append("Shipping Price: $" + line[2] + "<br>" +
-                             "Total Price with shipping: $" + line[3] + "<br>" "Seller rating: " + line[
-                                 5] + "<br>" + "Url: " + line[6])
+@app.callback(
+    Output('datatable-interactivity-container', "figure"),
+    [Input('datatable', "data"), Input('intermediate-value', 'children')])
+def update_graph(rows, input1):
+    if input1 is None:
+        raise PreventUpdate
+    else:
+        dff = pd.DataFrame(rows)
+        return {
+            "data": [
+                {
+                    "x": dff["Product Number"],
+                    "y": dff["Price ($)"],
+                    "type": "bar",
+                    "marker": {"color": "#7293CB"},
+                    "name": "Product Price",
+                    'customdata': dff["Product Number"],
+                }, {
+                    "x": dff["Product Number"],
+                    "y": dff["Shipping Price ($)"],
+                    "type": "bar",
+                    "marker": {"color": "#E1974C"},
+                    "name": "Shipping Price",
+                    'customdata': dff["Product Number"],
+                }
+            ],
+            "layout": {
+                "title": {"text": "Here is a graph of the listings"},
+                "xaxis": {"automargin": True,
+                          "type": "category",
+                          "title": {"text": "Product Number"}},
+                "yaxis": {
+                    "automargin": True,
+                    "title": {"text": "Total Price ($)"}
+                },
+                "barmode": "stack",
+            },
+        }
 
-    trace1 = go.Bar(
-        x=product_number,
-        y=product_price,
-        name='Product Price',
-        hovertemplate='Price : $%{y:.2f}'
-                      '<br>%{text}',
-        text=hovertext
-    )
 
-    trace2 = go.Bar(
-        x=product_number,
-        y=shipping_costs,
-        name="Shipping Costs"
-    )
-
-    return dcc.Graph(
-        id='stacked_total_cost_bar_chart',
-        figure=go.Figure(data=[trace1, trace2],
-                         layout=go.Layout(barmode='stack', title="Stacked Bar Chart of Listing Costs",
-                                          xaxis=go.layout.XAxis(
-                                              title=go.layout.xaxis.Title(
-                                                  text='Product Number'
-                                              )
-                                          ),
-
-                                          yaxis=go.layout.YAxis(
-                                              title=go.layout.yaxis.Title(
-                                                  text='Price $(USD)'
-                                              )
-                                          )
-                                          )
-                         )
-    )
+@app.callback(
+    Output('hover-data', 'children'),
+    [Input('datatable-interactivity-container', 'hoverData'), Input('intermediate-value', 'children')])
+def display_hover_data(hoverData, input1):
+    if input1 is None:
+        raise PreventUpdate
+    else:
+        if hoverData is not None:
+            df = pd.read_csv(input1 + '.csv')
+            s = df[df['Product Number'] == hoverData['points'][0]['customdata']]
+            return html.H3(
+                'Description: {} \n'
+                'Seller Rating: {}\n'
+                'URL: {}'.format(
+                    s.iloc[0]['Description'],
+                    s.iloc[0]['Seller Rating'],
+                    s.iloc[0]['URL'],
+                )
+            )
 
 
 @app.callback(Output('products-to-track', 'options'),
@@ -372,38 +355,43 @@ def add_to_tracking(n_clicks, input1):
                Output('live-update-graph10', 'children')],
               [Input('products-to-track', 'value'), Input('interval-component', 'n_intervals')])
 def update_price_visualization(input1, n):
-    print(input1)
     list_of_graphs = []
     if input1 != "Choose products to visualize":
         for listingnumber in input1:
             producttracker = Product_Tracker(listingnumber)
             producttracker.scrape_product()
             df = pd.read_csv(listingnumber + '.csv')
-            print("made it here")
+
             trace_shipping = go.Scatter(
                 x=df['date'],
                 y=df['shipping price'],
-                name="shipping price",
-                line=dict(color='#17BECF'),
+                name="Shipping price",
+                line=dict(color='#E1974C'),
                 opacity=0.8)
 
             trace_price = go.Scatter(
                 x=df['date'],
                 y=df['price'],
                 name="Product Price",
-                line=dict(color='#7F7F7F'),
+                line=dict(color='#7293CB'),
                 opacity=0.8)
 
             trace_total = go.Scatter(
                 x=df['date'],
                 y=df['total price'],
                 name="Total Price Price",
-                line=dict(color='#7F7F7F'),
+                line=dict(color='#84BA5B'),
                 opacity=0.8)
 
             data = [trace_price, trace_shipping, trace_total]
             layout = dict(
-                title=listingnumber,
+                title='https://www.grailed.com/listings/' + listingnumber,
+                xaxis=dict(
+                    title='Date'
+                ),
+                yaxis=dict(
+                    title='$'
+                )
             )
 
             fig = dict(data=data, layout=layout)
