@@ -4,8 +4,8 @@ import dash_html_components as html
 import pandas as pd
 import plotly.graph_objs as go
 from dash.dependencies import Input, Output, State
-from Grailed_Bot import Grailed_Bot
-from Grailed_Bot import Product_Tracker
+from Grailed_Bot import GrailedBot
+from Grailed_Bot import ProductTracker
 from dash.exceptions import PreventUpdate
 import dash_bootstrap_components as dbc
 import dash_table
@@ -196,7 +196,8 @@ app.layout = html.Div([
             html.Br(),
             html.Br(),
             html.H6(
-                children="Choose up to 10 of the products that you are tracking to see live visualizations of their price"),
+                children="Choose up to 10 of the products that you are tracking to see live visualizations of their "
+                         "price"),
             dcc.Dropdown(
                 id='products-to-track',
                 value='Choose products to visualize',
@@ -234,8 +235,8 @@ app.layout = html.Div([
                State('input-7-state', 'value')])
 def scrape_product(n_clicks, input1, input2, input3, input4, input5, input6, input7):
     if input1 != "Product Name":
-        GrailedBot = Grailed_Bot(str(input1), input5, input3, input4, input6, input7, input2)
-        GrailedBot.scrape_product()
+        grailed_bot = GrailedBot(str(input1), input5, input3, input4, input6, input7, input2)
+        grailed_bot.scrape_product()
 
         return input1
 
@@ -313,13 +314,13 @@ def update_graph(rows, input1):
 @app.callback(
     Output('hover-data', 'children'),
     [Input('datatable-interactivity-container', 'hoverData'), Input('intermediate-value', 'children')])
-def display_hover_data(hoverData, input1):
+def display_hover_data(hover_data, input1):
     if input1 is None:
         raise PreventUpdate
     else:
-        if hoverData is not None:
+        if hover_data is not None:
             df = pd.read_csv(input1 + '.csv')
-            s = df[df['Product Number'] == hoverData['points'][0]['customdata']]
+            s = df[df['Product Number'] == hover_data['points'][0]['customdata']]
             return html.H3(
                 'Description: {} \n'
                 'Seller Rating: {}\n'
@@ -357,10 +358,10 @@ def add_to_tracking(n_clicks, input1):
 def update_price_visualization(input1, n):
     list_of_graphs = []
     if input1 != "Choose products to visualize":
-        for listingnumber in input1:
-            producttracker = Product_Tracker(listingnumber)
+        for listing_number in input1:
+            producttracker = ProductTracker(listing_number)
             producttracker.scrape_product()
-            df = pd.read_csv(listingnumber + '.csv')
+            df = pd.read_csv(listing_number + '.csv')
 
             trace_shipping = go.Scatter(
                 x=df['date'],
@@ -385,7 +386,7 @@ def update_price_visualization(input1, n):
 
             data = [trace_price, trace_shipping, trace_total]
             layout = dict(
-                title='https://www.grailed.com/listings/' + listingnumber,
+                title='https://www.grailed.com/listings/' + listing_number,
                 xaxis=dict(
                     title='Date'
                 ),
