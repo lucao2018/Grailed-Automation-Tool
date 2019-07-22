@@ -13,7 +13,7 @@ import time
 import csv
 
 
-class Grailed_Bot(object):
+class GrailedBot(object):
 
     def __init__(self, item, shoe_sizes, top_sizes, pants_sizes, tailoring_sizes, accesories_sizes, item_type):
 
@@ -145,15 +145,16 @@ class Grailed_Bot(object):
             self.input_user_specs()
 
         # script which auto scrolls until very end of the page so that all products will load
-        lenOfPage = self.driver.execute_script(
+        len_of_page = self.driver.execute_script(
             "window.scrollTo(0, document.body.scrollHeight);var lenOfPage=document.body.scrollHeight;return lenOfPage;")
         match = False
-        while (match == False):
-            lastCount = lenOfPage
+        while match is False:
+            last_count = len_of_page
             time.sleep(3)
-            lenOfPage = self.driver.execute_script(
-                "window.scrollTo(0, document.body.scrollHeight);var lenOfPage=document.body.scrollHeight;return lenOfPage;")
-            if lastCount == lenOfPage:
+            len_of_page = self.driver.execute_script(
+                "window.scrollTo(0, document.body.scrollHeight);var lenOfPage=document.body.scrollHeight;return "
+                "lenOfPage;")
+            if last_count == len_of_page:
                 match = True
 
         time.sleep(2)
@@ -163,23 +164,23 @@ class Grailed_Bot(object):
         for feed_item in feed_items:
             soup = BeautifulSoup(feed_item.get_attribute("innerHTML"), 'lxml')
             link = soup.find('a')
-            if link == None:
+            if link is None:
                 break
             finallink = "https://www.grailed.com" + (link.get('href'))
             urls.append(finallink)
 
         for url in urls:
             self.driver.get(url)
-            price = self.get_product_price(url)
+            price = self.get_product_price()
             prices.append(price)
 
-            description = self.get_product_description(url)
+            description = self.get_product_description()
             descriptions.append(description)
 
-            shipping_cost = self.get_shipping_price(url)
+            shipping_cost = self.get_shipping_price()
             shipping_costs.append(shipping_cost)
 
-            user_rating = self.get_user_rating(url)
+            user_rating = self.get_user_rating()
             user_ratings.append(user_rating)
 
             listing_number = get_listing_number(url)
@@ -193,7 +194,7 @@ class Grailed_Bot(object):
         self.driver.close()
         return prices, shipping_costs, descriptions, user_ratings, urls
 
-    def get_product_price(self, url):
+    def get_product_price(self):
 
         time.sleep(2)
 
@@ -214,7 +215,7 @@ class Grailed_Bot(object):
 
         return price
 
-    def get_product_description(self, url):
+    def get_product_description(self):
 
         time.sleep(2)
 
@@ -237,7 +238,7 @@ class Grailed_Bot(object):
 
         return final_description
 
-    def get_shipping_price(self, url):
+    def get_shipping_price(self):
 
         shipping_price = 0
 
@@ -256,11 +257,11 @@ class Grailed_Bot(object):
 
         return shipping_price
 
-    def get_user_rating(self, url):
+    def get_user_rating(self):
 
         user_feedback = "Not Available"
 
-        #self.driver.get(url)
+        # self.driver.get(url)
         time.sleep(2)
 
         # hides the footer which sometimes covers the user rating
@@ -289,7 +290,9 @@ class Grailed_Bot(object):
             user_feedback = float(user_feedback[0:slash_index])
         return user_feedback
 
-class Product_Tracker(Grailed_Bot):
+
+# class for scraping individual products
+class ProductTracker(GrailedBot):
 
     def __init__(self, listingnumber):
         self.listingnumber = listingnumber
@@ -302,13 +305,13 @@ class Product_Tracker(Grailed_Bot):
         self.driver.get(self.url)
 
         print(self.url)
-        price = self.get_product_price(self.url)
+        price = self.get_product_price()
 
-        description = self.get_product_description(self.url)
+        description = self.get_product_description()
 
-        shipping_cost = self.get_shipping_price(self.url)
+        shipping_cost = self.get_shipping_price()
 
-        user_rating = self.get_user_rating(self.url)
+        user_rating = self.get_user_rating()
 
         now = datetime.now()
         current_time = now.strftime("%Y-%m-%d %H:%M")
