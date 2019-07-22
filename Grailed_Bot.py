@@ -8,6 +8,7 @@ from selenium.webdriver.common.by import By
 from selenium.common.exceptions import TimeoutException
 from selenium.common.exceptions import StaleElementReferenceException
 from selenium.webdriver.common.action_chains import ActionChains
+from datetime import datetime
 import time
 import csv
 
@@ -53,11 +54,10 @@ class Grailed_Bot(object):
         size_type_options = self.driver.find_element_by_class_name('sizes-wrapper')
         size_type_buttons = size_type_options.find_elements_by_class_name('filter-category-item-header')
         time.sleep(3)
-        for size_type_button in size_type_buttons:
-            size_type_button.click()
-            time.sleep(1)
 
+        # inputs relevant user sizes
         if self.item_type == "Tops" or self.item_type == "Outerwear":
+            size_type_buttons[0].click()
             tops_sizes = self.driver.find_element_by_xpath(
                 '//*[@id="shop"]/div/div/div/div[2]/div/div[1]/div/div/div/div[3]/div[2]/div/span[1]/div[2]')
             tops_sizes_list = tops_sizes.find_elements_by_class_name('active-indicator')
@@ -68,6 +68,7 @@ class Grailed_Bot(object):
                 time.sleep(1)
 
         elif self.item_type == "Footwear":
+            size_type_buttons[2].click()
             footwear_sizes = self.driver.find_element_by_xpath(
                 '//*[@id="shop"]/div/div/div/div[2]/div/div[1]/div/div/div/div[3]/div[2]/div/span[3]/div[2]')
             footwear_sizes_list = footwear_sizes.find_elements_by_class_name('active-indicator')
@@ -77,8 +78,8 @@ class Grailed_Bot(object):
                     footwear_size.click()
                 time.sleep(1)
 
-        # selects user sizes for pants
         elif self.item_type == "Bottoms":
+            size_type_buttons[1].click()
             pants_sizes = self.driver.find_element_by_xpath(
                 '//*[@id="shop"]/div/div/div/div[2]/div/div[1]/div/div/div/div[3]/div[2]/div/span[2]/div[2]')
             pants_sizes_list = pants_sizes.find_elements_by_class_name('active-indicator')
@@ -88,8 +89,8 @@ class Grailed_Bot(object):
                     pant_size.click()
                 time.sleep(1)
 
-        # selects user sizes for tailoring
         elif self.item_type == "Tailoring":
+            size_type_buttons[3].click(0)
             tailoring_sizes = self.driver.find_element_by_xpath(
                 '//*[@id="shop"]/div/div/div/div[2]/div/div[1]/div/div/div/div[3]/div[2]/div/span[4]/div[2]')
             tailoring_sizes_list = tailoring_sizes.find_elements_by_class_name('active-indicator')
@@ -100,6 +101,7 @@ class Grailed_Bot(object):
                 time.sleep(1)
 
         else:
+            size_type_buttons[4].click()
             accessories_sizes = self.driver.find_element_by_xpath(
                 '//*[@id="shop"]/div/div/div/div[2]/div/div[1]/div/div/div/div[3]/div[2]/div/span[5]/div[2]')
             accessories_sizes_list = accessories_sizes.find_elements_by_class_name('active-indicator')
@@ -118,11 +120,13 @@ class Grailed_Bot(object):
         user_ratings = []
 
         item = self.item
+
         with open(item + '.csv', 'w', newline='', encoding='utf-8') as new_file:
             csv_writer = csv.writer(new_file)
-            csv_writer.writerow(['productnumber', 'price', 'shipping price', 'total price', 'description', 'user rating', 'url'])
+            csv_writer.writerow(
+                ['Product Number', 'Price ($)', 'Shipping Price ($)', 'Total Price ($)', 'Description', 'Seller Rating',
+                 'URL'])
 
-        print(f"Searching for {item}.")
         self.driver.get(self.grailed_url)
 
         # Searches for item in search bar
@@ -165,37 +169,31 @@ class Grailed_Bot(object):
             urls.append(finallink)
 
         for url in urls:
-            print(url)
+            self.driver.get(url)
             price = self.get_product_price(url)
             prices.append(price)
-            print(price)
 
             description = self.get_product_description(url)
             descriptions.append(description)
-            print(description)
 
             shipping_cost = self.get_shipping_price(url)
             shipping_costs.append(shipping_cost)
-            print(shipping_cost)
 
             user_rating = self.get_user_rating(url)
             user_ratings.append(user_rating)
-            print(user_rating)
 
-
+            listing_number = get_listing_number(url)
 
             with open(item + '.csv', 'a', newline='', encoding='utf-8') as add_file:
                 csv_writer = csv.writer(add_file)
                 csv_writer.writerow(
-                    [str(len(user_ratings)), price, shipping_cost, int(price) + int(shipping_cost), description, user_rating, url])
+                    [listing_number, price, shipping_cost, int(price) + int(shipping_cost), description, user_rating,
+                     url])
 
-        print("Done")
-
+        self.driver.close()
         return prices, shipping_costs, descriptions, user_ratings, urls
 
     def get_product_price(self, url):
-
-        self.driver.get(url)
 
         time.sleep(2)
 
@@ -218,7 +216,6 @@ class Grailed_Bot(object):
 
     def get_product_description(self, url):
 
-        self.driver.get(url)
         time.sleep(2)
 
         description = "Not Available"
@@ -231,9 +228,14 @@ class Grailed_Bot(object):
 
         if description != "Not Available":
             soup = BeautifulSoup(description.get_attribute("innerHTML"), 'lxml')
-            description = soup.findAll('p')
+            paragraphs = soup.findAll('p')
+            description = []
+            for paragraph in paragraphs:
+                description.append(paragraph.getText())
 
-        return description
+            final_description = "\n".join(description)
+
+        return final_description
 
     def get_shipping_price(self, url):
 
@@ -258,7 +260,7 @@ class Grailed_Bot(object):
 
         user_feedback = "Not Available"
 
-        self.driver.get(url)
+        #self.driver.get(url)
         time.sleep(2)
 
         # hides the footer which sometimes covers the user rating
@@ -286,3 +288,62 @@ class Grailed_Bot(object):
             slash_index = user_feedback.find("/")
             user_feedback = float(user_feedback[0:slash_index])
         return user_feedback
+
+class Product_Tracker(Grailed_Bot):
+
+    def __init__(self, listingnumber):
+        self.listingnumber = listingnumber
+        self.url = 'https://www.grailed.com/listings/' + str(listingnumber)
+
+        chromedriver = "C:\\Users\\Lu\\Downloads\\chromedriver_win32\\chromedriver.exe"
+        self.driver = webdriver.Chrome(chromedriver)
+
+    def scrape_product(self):
+        self.driver.get(self.url)
+
+        print(self.url)
+        price = self.get_product_price(self.url)
+
+        description = self.get_product_description(self.url)
+
+        shipping_cost = self.get_shipping_price(self.url)
+
+        user_rating = self.get_user_rating(self.url)
+
+        now = datetime.now()
+        current_time = now.strftime("%Y-%m-%d %H:%M")
+
+        with open(self.listingnumber + '.csv', 'a', newline='', encoding='utf-8') as add_file:
+            csv_writer = csv.writer(add_file)
+            csv_writer.writerow(
+                [str(current_time), price, shipping_cost, int(price) + int(shipping_cost), description,
+                 user_rating])
+
+        self.driver.close()
+
+
+# function to get the listing number of a product
+def get_listing_number(url):
+    listingnumber = ""
+    index = 0
+
+    for i in range(0, len(url)):
+        if url[i].isdigit():
+            index = i
+            break
+
+    for i in range(index, len(url)):
+        if url[i].isdigit():
+            listingnumber += url[i]
+        else:
+            break
+
+    return listingnumber
+
+
+# generates a csv file for a product with the corresponding listing number
+def generate_csv(listingnumber):
+    with open(listingnumber + '.csv', 'w', newline='', encoding='utf-8') as new_file:
+        csv_writer = csv.writer(new_file)
+        csv_writer.writerow(
+            ['date', 'price', 'shipping price', 'total price', 'description', 'user rating'])
