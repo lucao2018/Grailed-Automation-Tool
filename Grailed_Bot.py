@@ -26,7 +26,7 @@ class GrailedBot(object):
         self.accesories_sizes = accesories_sizes
         self.item_type = item_type
 
-        chromedriver = "C:\\Users\\Lu\\Downloads\\chromedriver_win32\\chromedriver.exe"
+        chromedriver = "Put file location of chromedriver executable here"
         self.driver = webdriver.Chrome(chromedriver)
 
     def input_user_specs(self):
