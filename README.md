@@ -13,6 +13,7 @@ pip install -r requirements.txt
 ```
 
 Install chromedriver: http://chromedriver.chromium.org/
+
 Open Grailed_Bot.py and put the file location of the chromedriver executable on your system in the quotes:
 
 ```
